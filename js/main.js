@@ -1,5 +1,22 @@
 $(document).ready(function() {
-	var canvas, context, tool;
+	var canvas, context, tool, ws, debug;
+	
+	deb = true;
+
+	ws = new WebSocket("ws://localhost:8085/");
+	
+    ws.onmessage = function(evt) { 
+		var jsonData = JSON.parse(evt.data);
+		var ev = { type: jsonData[0], _x: jsonData[1], _y: jsonData[2]};
+		var func = tool[ev.type];
+	    if (func) {
+	      func(ev);
+	    }
+	};
+    ws.onclose = function() { debug("socket closed"); };
+    ws.onopen = function() {
+      debug("connected...");
+    };
 
 	init();
 	
@@ -76,11 +93,14 @@ $(document).ready(function() {
       ev._y = ev.offsetY;
     }
 
-    // Call the event handler of the tool.
-    var func = tool[ev.type];
-    if (func) {
-      func(ev);
-    }
+	var data = [ev.type, ev._x, ev._y];
+	var dataStr = JSON.stringify(data);
+	ws.send(dataStr);
   }
 
+  function debug(str){ 
+		if(deb){
+			$("#debug").append("<p>" +  str);				
+		} 
+	}
 });
